@@ -95,12 +95,15 @@ bool ReadMapping::RunMapping(Sequence& input, const string& alphabet, const stri
     bool result = false;
 
     if (fileExists(outputPath)) {
-        _suffixTree = new SuffixTree(input.seq, alphabet);
-        _sequenceComparer = new SequenceComparer();
+        SequenceComparer* sequenceComparer = new SequenceComparer();
+        //Construct ST
+        SuffixTree* suffixTree = new SuffixTree(input.seq, alphabet);
+        //Prepare ST, building A array
+        suffixTree->PrepareST();
+        //Map reads
 
 
-
-
+        //Output
 
         result = true;
     }

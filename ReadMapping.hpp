@@ -50,7 +50,6 @@ public:
     vector<Read> ReadVector;
 private:
     void _buildCollection(const string& readsFile);
-
 };
 
 
@@ -60,7 +59,7 @@ public:
 //ReadMapping(inputSequence, alphabet);
     ReadMapping();
     ~ReadMapping();
-    bool RunMapping(Sequence& input, const string& alphabet, const string& outputPath);
+    bool MapReads(Sequence& input, const string& alphabet, const string& outputPath);
 
 private:
     string _alphabet;
