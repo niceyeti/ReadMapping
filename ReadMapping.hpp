@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../StringAlignment/StringAlignment/Header.hpp"
+#include "../../StringAlignment/StringAlignment/SequenceAlignment.hpp"
 #include "../../mccreight//mccreight/SuffixTree.hpp"
 #include "../../mccreight/mccreight/Util.hpp"
 
@@ -59,13 +59,13 @@ public:
 //ReadMapping(inputSequence, alphabet);
     ReadMapping();
     ~ReadMapping();
-    bool MapReads(Sequence& input, const string& alphabet, const string& outputPath);
+    bool MapReads(Sequence& input, const string& alphabet, const string& readsPath, const int minMatchLength);
 
 private:
     string _alphabet;
     Sequence* _inputSequence;
     SuffixTree* _suffixTree;
-    SequenceComparer* _sequenceComparer;
+    SequenceAligner* _sequenceAligner;
     vector<int> _findLoci();
     bool _outputReadMap(const string& outputPath);
 

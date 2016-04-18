@@ -9,6 +9,7 @@ void usage()
 //<read_mapper executable> <FASTA file containing reference genome sequence G> <FASTA file containing reads> <input alphabet file>
 int main(int argc, char** argv)
 {
+    int minMatchLength;
     string inputFile, alphaFile, readFile;
     Sequence inputSequence;
     string alphabet;
@@ -26,20 +27,20 @@ int main(int argc, char** argv)
     inputFile = argv[1];
     readFile = argv[2];
     alphaFile = argv[3];
+    //minMatchLength = argv[4]
 
     inputFile= "Peach_Reference.fasta";
     readFile = "Peach_Reads.txt";
     alphaFile= "alphabet.txt";
+    minMatchLength = 25;
 
     if (fileExists(inputFile)) {
-        if (fileExists(outputFile)) {
+        if (fileExists(readFile)) {
             if (fileExists(alphaFile)) {
                 if (parseAlphabetFile(alphaFile, alphabet)) {
                     if (parseFastaFile(inputFile, inputSequence, alphabet)) {
-                        ReadMapping* rm = new ReadMapping(inputSequence, alphabet);
-                        
-                        rm->Run(outputFile);
-
+                        ReadMapping* rm = new ReadMapping();
+                        rm->MapReads(inputSequence, alphabet, readFile, minMatchLength);
 
 
                     }
@@ -56,7 +57,7 @@ int main(int argc, char** argv)
             }
         }
         else {
-            cout << "ERROR reads file not found: " << readsFile << endl;
+            cout << "ERROR file containing reads not found: " << readFile << endl;
         }
     }
     else {

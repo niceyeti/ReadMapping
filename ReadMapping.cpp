@@ -2,6 +2,7 @@
 
 ReadCollection::ReadCollection(const string& readsFile)
 {
+    _buildCollection(readsFile);
 }
 
 ReadCollection::~ReadCollection()
@@ -90,25 +91,40 @@ bool ReadMapping::_outputReadMap(const string& outputPath)
     return result;
 }
 
-bool ReadMapping::RunMapping(Sequence& input, const string& alphabet, const string& outputPath)
+bool ReadMapping::MapReads(Sequence& input, const string& alphabet, const string& readsPath, const int minMatchLength)
 {
+    vector<int> matchIndices;
     bool result = false;
 
-    if (fileExists(outputPath)) {
-        SequenceComparer* sequenceComparer = new SequenceComparer();
+    if (fileExists(readsPath)) {
+        SequenceAlignment* sequenceAligner = new SequenceAlignment();
         //Construct ST
         SuffixTree* suffixTree = new SuffixTree(input.seq, alphabet);
         //Prepare ST, building A array
         suffixTree->PrepareST();
-        //Map reads
 
+        //Build the read collection; this is very fuzzy, since it will take so long (TODO: read files can be huge, so this could be done concurrently (eg. read-k reads, process them, read another k reads, process, etc)
+        ReadCollection* reads = new ReadCollection(readsPath);
 
-        //Output
+        //Map the reads: foreach read, get the 
+        for (int i = 0; i < reads->ReadVector.size(); i++) {
+            Read& thisRead = reads->ReadVector[i]; //TODO: ugh, fix the ReadCollection api when its i/o req's are clear
+            if (reads->ReadVector[i].data.length() > minMatchLength) {
+                //get the deepest node of the longest match(es)
+                TreeNode* deepest = suffixTree->FindLoc(reads->ReadVector[i].data, minMatchLength);
+                
+                //start/endLeafIndices of deepest span the leaves representing sufficient matching strings; this iterates them and computes their local alignments
+                for (int j = deepest->StartLeafIndex; j <= deepest->EndLeafIndex; j++) {
+                    //run SmithWaterman on each extracted substring
 
+                }
+            }
+        }
+        
         result = true;
     }
     else {
-        cout << "ERROR output file not found, mapping aborted: " << outputPath << endl;
+        cout << "ERROR file containing reads not found, mapping aborted: " << readsPath << endl;
     }
 
     return result;
