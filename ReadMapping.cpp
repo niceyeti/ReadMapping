@@ -32,9 +32,9 @@ void ReadCollection::_buildCollection(const string& readsFile)
 
             cout << "Parsing reads from file: " << readsFile << ". This may require significant time, for read files > 200kb." << endl;
             while (getline(inputFile, line)) {
-                if (line.length() > 0) {
+                if (line.length() > 2) {
                     //if line begins with '>' grab desription line of this read
-                    if (line.length() > 0 && line[0] == '>') {
+                    if (line[0] == '>') {
                         ReadVector.resize(ReadVector.size() + 1);
                         ReadVector.back().desc = line;
                         ReadVector.back().hitBegin = -1;
@@ -51,10 +51,11 @@ void ReadCollection::_buildCollection(const string& readsFile)
                     bytesRead += line.length();
                     if (bytesRead % 10000 > thousandsRead) {
                         thousandsRead = bytesRead % 1000;
-                        cout << "\rProgress: " << (int)((float(bytesRead) / float(fsize)) * 100) << "% complete          " << endl;
+                        cout << "\rProgress: " << (int)((float(bytesRead) / float(fsize)) * 100) << "% complete           " << flush;
                     }
                 }
             }
+            cout << "\rProgress: 100% complete             " << endl;
             inputFile.close();
         }
         else {
@@ -136,12 +137,14 @@ bool ReadMapping::MapReads(Sequence& input, const string& alphabet, const string
     int locBegin, numChars;
     float pctIdCoverage, pctLenCoverage;
     float maxLenCoverage;
-    const float pctIdentityCoverage = (float)0.80, pctLengthCoverage = (float)0.90; //these params defined in prg3Spec
+    const float pctIdentityCoverage = (float)0.80, pctLengthCoverage = (float)0.90; //these params defined in prg3Spec: 0.8 0.9
     Read maxRead;
     Parameters params;
     Alignment alignment;
     vector<int> matchIndices;
     bool result = false;
+
+    string del;
 
     if (!fileExists(readsPath)) {
         cout << "ERROR file containing reads not found, mapping aborted: " << readsPath << endl;
@@ -171,25 +174,37 @@ bool ReadMapping::MapReads(Sequence& input, const string& alphabet, const string
             //get the deepest node of the longest match(es)
             string& readStr = curRead.data;
             TreeNode* deepest = suffixTree->FindLoc(readStr, minMatchLength);
+            if (deepest == deepest->Parent) {
+                cout << "ERROR hit root" << endl;
+                cin >> del;
+                continue;
+            }
 
+
+            //cout << "Start: " << deepest->StartLeafIndex << "  End: " << deepest->EndLeafIndex << ":  ";
+            //for (int k = deepest->StartLeafIndex; k <= deepest->EndLeafIndex; k++) {
+            //    cout << suffixTree->A[k] << ", ";
+            //}
+            //cout << endl;
+            //suffixTree->PrintPrefix(deepest);
             //TODO: if deepest node found is root, skip the read; otherwise the read will be aligned with every suffix of the genome string!
-
-
-            cout << "Computing maximal match over " << (deepest->EndLeafIndex - deepest->StartLeafIndex + 1) << " candidate(s)" << endl;
+            
+            //cout << "Computing maximal match over " << (deepest->EndLeafIndex - deepest->StartLeafIndex + 1) << " candidate(s)" << " for read: " << curRead.desc << endl;
             //start/endLeafIndices of deepest span the leaves representing sufficient matching strings; this iterates them and computes their local alignments
             maxLenCoverage = 0;
             for (int j = deepest->StartLeafIndex; j <= deepest->EndLeafIndex; j++) {
                 //get absolute string index from A array, minus some padding, making sure we don't go below zero
-                locBegin = max(0, suffixTree->A[deepest->StartLeafIndex] - (int)readStr.length());
+                locBegin = max(0, suffixTree->A[j] - (int)readStr.length());
                 //get the number of chars to extract, making sure we don't go off the end
-                numChars = min(2 * (int)readStr.length(), (int)readStr.length() - locBegin);
+                numChars = min(2 * (int)readStr.length(), (int)input.seq.length() - locBegin);
                 
                 //cout << j << " < " << deepest->EndLeafIndex << endl;
-                //if more than one candidate location, smithwaterman over each
+                //only run SmithWaterman alignment if more than one candidate location
                 if (deepest->StartLeafIndex < deepest->EndLeafIndex) {
                     //TODO: rather than generate new substrings using substr() could instead rewrite SmithWaterman to accept string index boundaries and a string ref
                     //extract local string around match from genome input (big string)
                     string genomeSubstring = input.seq.substr(locBegin, numChars);
+                    //cout << locBegin << "(" << numChars << "):  " << genomeSubstring << endl;
                     sequenceAligner->SmithWaterman(genomeSubstring, readStr, params, alignment, false);
 
                     //get the coverage threshold vals
@@ -203,6 +218,10 @@ bool ReadMapping::MapReads(Sequence& input, const string& alphabet, const string
                             curRead.hitBegin = locBegin;
                             curRead.hitEnd = locBegin + numChars;
                         }
+                    }
+                    else {
+                        //cout << "miss, insufficient similarity:  " << genomeSubstring << "\n                         " << readStr << endl;
+                        cout << j << " miss, insufficient similarity: " << pctIdCoverage << " id coverage,  " << pctLenCoverage << " len coverage   " << alignment.Length() << " alignment length" << endl;
                     }
                 }
                 //only one possible alignment found, so just store it as max
@@ -219,9 +238,13 @@ bool ReadMapping::MapReads(Sequence& input, const string& alphabet, const string
                 if (curRead.hitEnd >= (int)input.seq.length()) {
                     cout << "ERROR hitEnd off end of string: " << curRead.hitEnd << " for read: " << curRead.desc << endl;
                 }
-            }
+            } //end inner for
         }
-    }
+
+        if (i % 20 == 19) {
+            cout << "\rMapping " << (int)(100 * (float)i / (float)reads->ReadVector.size()) << "% complete               " << endl;
+        }
+    } // end outer for
 
     //output the reads to file
     reads->Write(resultPath);
