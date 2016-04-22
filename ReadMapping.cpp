@@ -10,7 +10,7 @@ ReadCollection::~ReadCollection()
 
 void ReadCollection::_buildCollection(const string& readsFile)
 {
-    int seqnum = 0;
+    bool getData = false;
     ifstream inputFile;
     string line;
     int progress, i;
@@ -32,23 +32,27 @@ void ReadCollection::_buildCollection(const string& readsFile)
 
             cout << "Parsing reads from file: " << readsFile << ". This may require significant time, for read files > 200kb." << endl;
             while (getline(inputFile, line)) {
-                //if line begins with '>' grab desription line
-                if (seqnum == 0 && line.length() > 0 && line[0] == '>') {
-                    ReadVector.resize(ReadVector.size()+1);
-                    ReadVector.back().desc = line;
-                    ReadVector.back().hitBegin = -1;
-                    ReadVector.back().hitEnd = -1;
-                }
-                //else grab the read data itself
-                else {
-                    ReadVector.back().data = line;
-                }
+                if (line.length() > 0) {
+                    //if line begins with '>' grab desription line of this read
+                    if (line.length() > 0 && line[0] == '>') {
+                        ReadVector.resize(ReadVector.size() + 1);
+                        ReadVector.back().desc = line;
+                        ReadVector.back().hitBegin = -1;
+                        ReadVector.back().hitEnd = -1;
+                        getData = true;
+                    }
+                    //else grab the read data itself
+                    else if(getData){
+                        ReadVector.back().data = line;
+                        getData = false;
+                    }
 
-                //report progress
-                bytesRead += line.length();
-                if (bytesRead % 10000 > thousandsRead) {
-                    thousandsRead = bytesRead % 1000;
-                    cout << "\rProgress: " << (int)((float(bytesRead) / float(fsize)) * 100) << "% complete          " << endl;
+                    //report progress
+                    bytesRead += line.length();
+                    if (bytesRead % 10000 > thousandsRead) {
+                        thousandsRead = bytesRead % 1000;
+                        cout << "\rProgress: " << (int)((float(bytesRead) / float(fsize)) * 100) << "% complete          " << endl;
+                    }
                 }
             }
             inputFile.close();
@@ -77,10 +81,10 @@ void ReadCollection::Write(const string& outputPath)
             for (int i = 0; i < ReadVector.size(); i++) {
                 //output formatted as: <Read_name> <Start index of hit> <End index of hit>.
                 if (ReadVector[i].hitBegin >= 0 && ReadVector[i].hitEnd >= 0) {
-                    outputFile << ReadVector[i].desc << " " << ReadVector[i].hitBegin << " " << ReadVector[i].hitEnd << "\n";
+                    outputFile << ReadVector[i].desc << "  " << ReadVector[i].hitBegin << " " << ReadVector[i].hitEnd << "\n";
                 }
                 else {
-                    outputFile << ReadVector[i].desc << "No hit found.\n";
+                    outputFile << ReadVector[i].desc << "  No hit found.\n";
                 }
             }
         }
@@ -129,12 +133,13 @@ bool ReadMapping::_outputReadMap(const string& outputPath)
 */
 bool ReadMapping::MapReads(Sequence& input, const string& alphabet, const string& readsPath, const string& paramsPath, const int minMatchLength, const string& resultPath)
 {
+    int locBegin, numChars;
     float pctIdCoverage, pctLenCoverage;
     float maxLenCoverage;
-    const float pctIdentityCoverage = 0.80, pctLengthCoverage = 0.90; //these params defined in prg3Spec
+    const float pctIdentityCoverage = (float)0.80, pctLengthCoverage = (float)0.90; //these params defined in prg3Spec
     Read maxRead;
-    int maxReadIndex;
     Parameters params;
+    Alignment alignment;
     vector<int> matchIndices;
     bool result = false;
 
@@ -149,15 +154,12 @@ bool ReadMapping::MapReads(Sequence& input, const string& alphabet, const string
 
     //get the sequence alignment params
     SequenceAlignment::ParseParamsFile(paramsPath, params);
-    //make the tempAlignment
-    Alignment alignment;
     //Make the aligner
     SequenceAlignment* sequenceAligner = new SequenceAlignment();
     //Construct ST
     SuffixTree* suffixTree = new SuffixTree(input.seq, alphabet);
     //Prepare ST, building A array
     suffixTree->PrepareST();
-
     //Build the read collection; this is very fuzzy, since it will take so long (TODO: read files can be huge, so this could be done concurrently (eg. read-k reads, process them, read another k reads, process, etc)
     ReadCollection* reads = new ReadCollection(readsPath);
 
@@ -170,27 +172,48 @@ bool ReadMapping::MapReads(Sequence& input, const string& alphabet, const string
             string& readStr = curRead.data;
             TreeNode* deepest = suffixTree->FindLoc(readStr, minMatchLength);
 
-            cout << "Computing maximal match over " << (deepest->EndLeafIndex - deepest->StartLeafIndex) << " candidates" << endl;
+            cout << "Computing maximal match over " << (deepest->EndLeafIndex - deepest->StartLeafIndex + 1) << " candidate(s)" << endl;
             //start/endLeafIndices of deepest span the leaves representing sufficient matching strings; this iterates them and computes their local alignments
             maxLenCoverage = 0;
             for (int j = deepest->StartLeafIndex; j <= deepest->EndLeafIndex; j++) {
-                //run SmithWaterman on each extracted substring
-                //TODO: rather than generate new substrings using substr() could instead rewrite SmithWaterman to accept string index boundaries and a string ref
-                //extract local string around match from genome input (big string)
-                string genomeSubstring = input.seq.substr(std::max(0, j - (int)readStr.length()), 2 * (int)readStr.length());
-                sequenceAligner->SmithWaterman(genomeSubstring, readStr, params, alignment, false);
+                //convert the A array index into absolute string index, minus some padding, making sure we don't go below zero
+                locBegin = max(0, suffixTree->A[deepest->StartLeafIndex] - (int)readStr.length());
+                //get the number of chars to extract, making sure we don't go off the end
+                numChars = min(2 * (int)readStr.length(), (int)readStr.length() - locBegin);
 
-                //get the coverage threshold vals
-                pctIdCoverage = (float)alignment.matches / (float)(alignment.Length());
-                pctLenCoverage = (float)alignment.Length() / (float)readStr.length();
-                //firstly check if the alignment is of 'good' overall quality as defined by our prg3Spec thresholds
-                if (pctIdCoverage >= pctIdentityCoverage && pctLenCoverage >= pctLengthCoverage) {
-                    //track max read via its pctLenCoverage value
-                    if (pctLenCoverage > maxLenCoverage) {
-                        maxLenCoverage = pctLenCoverage;
-                        curRead.hitBegin = j;
-                        curRead.hitEnd = j + readStr.length();
+                //if more than one candidate location, run smithwaterman over each
+                if (deepest->StartLeafIndex < deepest->EndLeafIndex) {
+                    //TODO: rather than generate new substrings using substr() could instead rewrite SmithWaterman to accept string index boundaries and a string ref
+                    //extract local string around match from genome input (big string)
+                    string genomeSubstring = input.seq.substr(locBegin, numChars);
+                    sequenceAligner->SmithWaterman(genomeSubstring, readStr, params, alignment, false);
+
+                    //get the coverage threshold vals
+                    pctIdCoverage = (float)alignment.matches / (float)(alignment.Length());
+                    pctLenCoverage = (float)alignment.Length() / (float)readStr.length();
+                    //firstly check if the alignment is of 'good' overall quality as defined by our prg3Spec thresholds
+                    if (pctIdCoverage >= pctIdentityCoverage && pctLenCoverage >= pctLengthCoverage) {
+                        //track max read via its pctLenCoverage value
+                        if (pctLenCoverage > maxLenCoverage) {
+                            maxLenCoverage = pctLenCoverage;
+                            curRead.hitBegin = locBegin;
+                            curRead.hitEnd = locBegin + numChars;
+                        }
                     }
+                }
+                //only one possible alignment found, so just store it as max
+                else {
+                    //TODO: Fix these indices based on Ananth's feedback
+                    curRead.hitBegin = locBegin;
+                    curRead.hitEnd = locBegin + numChars;
+                }
+
+                //dbg 
+                if (curRead.hitBegin < -1) {
+                    cout << "ERROR hitBegin preceded beginning of string: " << curRead.hitBegin << " for read: " << curRead.desc << endl;
+                }
+                if (curRead.hitEnd >= (int)input.seq.length()) {
+                    cout << "ERROR hitEnd off end of string: " << curRead.hitEnd << " for read: " << curRead.desc << endl;
                 }
             }
         }

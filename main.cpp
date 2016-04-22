@@ -19,27 +19,30 @@ int main(int argc, char** argv)
     SuffixTree st;
     Sequence seq;
 
-    //For api for the hw
+    /*
+    //api for the hw
     if (argc != 4) {
         cout << "ERROR incorrect number of arguments." << endl;
         usage();
         return -1;
     }
+    
 
     inputFile = argv[1];
     readFile = argv[2];
     alphaFile = argv[3];
-    //minMatchLength = argv[4]
+    minMatchLength = 25; //hard coded per assignment spec
+    */
 
-    inputFile= "Peach_Reference.fasta";
-    readFile = "Peach_Reads.txt";
+    inputFile = "Test_Reference.fasta";
+    readFile = "Test_Reads.txt";
     alphaFile= "alphabet.txt";
     minMatchLength = 25;
 
     //result location is generated based on input file name, where the input should be named as 'Peach_Reference.txt'
-    size_t usIndex = inputFile.find_first_of('_');
-    if (usIndex != inputFile.npos) {
-        resultFile = inputFile.substr(0, usIndex);
+    size_t underscore = inputFile.find_first_of('_');
+    if (underscore != inputFile.npos) {
+        resultFile = inputFile.substr(0, underscore) + "_Results.txt";
     }
     else {
         resultFile = inputFile + "_Results.txt";
@@ -52,6 +55,7 @@ int main(int argc, char** argv)
                     if (parseFastaFile(inputFile, inputSequence, alphabet)) {
                         ReadMapping* rm = new ReadMapping();
                         rm->MapReads(inputSequence, alphabet, readFile, paramPath, minMatchLength, resultFile);
+                        cin >> readFile;
                     }
                     else {
                         cout << "ERROR could not parse FASTA file" << endl;
@@ -70,7 +74,7 @@ int main(int argc, char** argv)
         }
     }
     else {
-        cout << "ERROR input file not found: " << inputFile << endl;
+        cout << "ERROR input fasta file not found: " << inputFile << endl;
     }
 
     return 0;
