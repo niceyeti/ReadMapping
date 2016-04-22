@@ -37,7 +37,7 @@ int main(int argc, char** argv)
     inputFile = "Test_Reference.fasta";
     readFile = "Test_Reads.txt";
     alphaFile= "alphabet.txt";
-    minMatchLength = 25;
+    minMatchLength = 3;
 
     //result location is generated based on input file name, where the input should be named as 'Peach_Reference.txt'
     size_t underscore = inputFile.find_first_of('_');

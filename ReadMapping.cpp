@@ -172,16 +172,20 @@ bool ReadMapping::MapReads(Sequence& input, const string& alphabet, const string
             string& readStr = curRead.data;
             TreeNode* deepest = suffixTree->FindLoc(readStr, minMatchLength);
 
+            //TODO: if deepest node found is root, skip the read; otherwise the read will be aligned with every suffix of the genome string!
+
+
             cout << "Computing maximal match over " << (deepest->EndLeafIndex - deepest->StartLeafIndex + 1) << " candidate(s)" << endl;
             //start/endLeafIndices of deepest span the leaves representing sufficient matching strings; this iterates them and computes their local alignments
             maxLenCoverage = 0;
             for (int j = deepest->StartLeafIndex; j <= deepest->EndLeafIndex; j++) {
-                //convert the A array index into absolute string index, minus some padding, making sure we don't go below zero
+                //get absolute string index from A array, minus some padding, making sure we don't go below zero
                 locBegin = max(0, suffixTree->A[deepest->StartLeafIndex] - (int)readStr.length());
                 //get the number of chars to extract, making sure we don't go off the end
                 numChars = min(2 * (int)readStr.length(), (int)readStr.length() - locBegin);
-
-                //if more than one candidate location, run smithwaterman over each
+                
+                //cout << j << " < " << deepest->EndLeafIndex << endl;
+                //if more than one candidate location, smithwaterman over each
                 if (deepest->StartLeafIndex < deepest->EndLeafIndex) {
                     //TODO: rather than generate new substrings using substr() could instead rewrite SmithWaterman to accept string index boundaries and a string ref
                     //extract local string around match from genome input (big string)
