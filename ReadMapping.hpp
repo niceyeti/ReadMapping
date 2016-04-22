@@ -1,9 +1,8 @@
-#pragma once
+//#pragma once
 
 #include "../../StringAlignment/StringAlignment/SequenceAlignment.hpp"
 #include "../../mccreight//mccreight/SuffixTree.hpp"
 #include "../../mccreight/mccreight/Util.hpp"
-
 
 #ifndef _IOSTREAM_
 #include <iostream>
@@ -37,8 +36,11 @@
 // > some description
 // atcgtcgagtgcg...[the read sequence]
 struct Read {
+    //int score;
     string desc;
     string data;
+    int hitBegin;
+    int hitEnd;
 };
 
 //Primitive source-container for a bunch of reads, to be mapped to some sequence
@@ -48,10 +50,10 @@ public:
     ReadCollection(const string& readsFile);
     ~ReadCollection();
     vector<Read> ReadVector;
+    void Write(const string& outputPath);
 private:
     void _buildCollection(const string& readsFile);
 };
-
 
 
 class ReadMapping {
@@ -59,17 +61,14 @@ public:
 //ReadMapping(inputSequence, alphabet);
     ReadMapping();
     ~ReadMapping();
-    bool MapReads(Sequence& input, const string& alphabet, const string& readsPath, const int minMatchLength);
+    bool MapReads(Sequence& input, const string& alphabet, const string& readsPath, const string& paramsPath, const int minMatchLength, const string& resultPath);
 
 private:
     string _alphabet;
-    Sequence* _inputSequence;
-    SuffixTree* _suffixTree;
-    SequenceAligner* _sequenceAligner;
-    vector<int> _findLoci();
+    //Sequence* _inputSequence;
+    //SuffixTree* _suffixTree;
+    //SequenceAligner* _sequenceAligner;
+    //vector<int> _findLoci();
     bool _outputReadMap(const string& outputPath);
-
 };
-
-
 

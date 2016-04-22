@@ -14,6 +14,8 @@ int main(int argc, char** argv)
     Sequence inputSequence;
     string alphabet;
     string input;
+    string resultFile;
+    string paramPath = "parameters.config"; //TODO: not part of the cli api for prg3, so hardcoded for now
     SuffixTree st;
     Sequence seq;
 
@@ -34,15 +36,22 @@ int main(int argc, char** argv)
     alphaFile= "alphabet.txt";
     minMatchLength = 25;
 
+    //result location is generated based on input file name, where the input should be named as 'Peach_Reference.txt'
+    size_t usIndex = inputFile.find_first_of('_');
+    if (usIndex != inputFile.npos) {
+        resultFile = inputFile.substr(0, usIndex);
+    }
+    else {
+        resultFile = inputFile + "_Results.txt";
+    }
+
     if (fileExists(inputFile)) {
         if (fileExists(readFile)) {
             if (fileExists(alphaFile)) {
                 if (parseAlphabetFile(alphaFile, alphabet)) {
                     if (parseFastaFile(inputFile, inputSequence, alphabet)) {
                         ReadMapping* rm = new ReadMapping();
-                        rm->MapReads(inputSequence, alphabet, readFile, minMatchLength);
-
-
+                        rm->MapReads(inputSequence, alphabet, readFile, paramPath, minMatchLength, resultFile);
                     }
                     else {
                         cout << "ERROR could not parse FASTA file" << endl;
