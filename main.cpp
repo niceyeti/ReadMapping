@@ -34,10 +34,11 @@ int main(int argc, char** argv)
     minMatchLength = 25; //hard coded per assignment spec
     */
 
-    inputFile = "Peach_Reference.fasta";
-    readFile = "Peach_Reads.txt";
+    inputFile = "Test_Reference.fasta";
+    //readFile = "Peach_simulated_reads.fasta";
+    readFile = "Test_Reads.txt";
     alphaFile= "alphabet.txt";
-    minMatchLength = 15;
+    minMatchLength = 25;
 
     //result location is generated based on input file name, where the input should be named as 'Peach_Reference.txt'
     size_t underscore = inputFile.find_first_of('_');
@@ -56,7 +57,7 @@ int main(int argc, char** argv)
                         ReadMapping* rm = new ReadMapping();
                         rm->MapReads(inputSequence, alphabet, readFile, paramPath, minMatchLength, resultFile);
                         cout << "Mapping complete." << flush;
-                        cin >> readFile;
+                        //cin >> readFile;
                     }
                     else {
                         cout << "ERROR could not parse FASTA file" << endl;

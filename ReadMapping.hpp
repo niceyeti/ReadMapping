@@ -51,6 +51,7 @@ public:
     ~ReadCollection();
     vector<Read> ReadVector;
     void Write(const string& outputPath);
+    void Clear();
 private:
     void _buildCollection(const string& readsFile);
 };
