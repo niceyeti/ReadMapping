@@ -35,9 +35,9 @@ int main(int argc, char** argv)
     */
 
     inputFile = "Peach_Reference.fasta";
-    //readFile = "Peach_simulated_reads.fasta";
+    readFile = "Peach_simulated_reads.fasta";
     //inputFile = "Test_Reference.fasta";
-    readFile = "Test_Reads.txt";
+    //readFile = "Test_Reads.txt";
     alphaFile= "alphabet.txt";
     minMatchLength = 25;
 

@@ -234,6 +234,7 @@ bool ReadMapping::MapReads(Sequence& input, const string& alphabet, const string
                     if (pctIdCoverage >= minIdentityCoverage && pctLenCoverage >= minLengthCoverage) {
                         //track max read via its pctLenCoverage value
                         if (pctLenCoverage > maxLenCoverage) {
+
                             maxLenCoverage = pctLenCoverage;
                             curRead.hitBegin = locBegin;
                             curRead.hitEnd = locBegin + numChars;
@@ -281,6 +282,7 @@ bool ReadMapping::MapReads(Sequence& input, const string& alphabet, const string
     outputTime = clock() - c_start;
 
     //Report miss/hit stats
+    cout << "Num reads: " << reads->ReadVector.size() << endl;
     cout << "Mapped reads: " << hitCount << endl;
     cout << "Number of alignments: " << numAlignments << endl;
     cout << "Min-match length misses: " << rootMisses << endl;
