@@ -34,8 +34,9 @@ int main(int argc, char** argv)
     minMatchLength = 25; //hard coded per assignment spec
     */
 
-    inputFile = "Test_Reference.fasta";
+    inputFile = "Peach_Reference.fasta";
     //readFile = "Peach_simulated_reads.fasta";
+    //inputFile = "Test_Reference.fasta";
     readFile = "Test_Reads.txt";
     alphaFile= "alphabet.txt";
     minMatchLength = 25;
